@@ -1,0 +1,473 @@
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dorker Unified — Credential & Blind XSS</title>
+    <style>
+        :root {
+            --bg: #000000;
+            --text: #ffffff;
+            --card-bg: #1a1a1a;
+            --border: #ffffff;
+            --accent: #ffffff;
+            --shadow: rgba(255, 255, 255, 0.3);
+            --hover-bg: #ffffff;
+            --hover-text: #000000;
+            --btn-bg: #ffffff;
+            --btn-text: #000000;
+            --note: #cccccc;
+            --legal: #ff6666;
+        }
+
+        body.light-mode {
+            --bg: #ffffff;
+            --text: #000000;
+            --card-bg: #ffffff;
+            --border: #000000;
+            --accent: #000000;
+            --shadow: rgba(0, 0, 0, 0.3);
+            --hover-bg: #000000;
+            --hover-text: #ffffff;
+            --btn-bg: #000000;
+            --btn-text: #ffffff;
+            --note: #666666;
+            --legal: #ff0000;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Courier New', monospace;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            transition: all 0.5s ease;
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--text);
+            text-shadow: 0 0 5px var(--shadow);
+            margin: 20px 0 10px;
+            font-size: 22px;
+            transition: all 0.5s ease;
+        }
+        @media (min-width: 768px) { h1 { font-size: 26px; } }
+
+        .section {
+            width: 100%;
+            max-width: 1200px;
+            margin-bottom: 60px;
+            padding: 20px;
+            border-radius: 10px;
+            background-color: rgba(26, 26, 26, 0.3);
+            box-shadow: 0 0 15px rgba(255,255,255,0.1);
+            transition: all 0.5s ease;
+        }
+
+        .section h2 {
+            text-align: center;
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: #00ff88;
+            text-shadow: 0 0 5px #00ff88;
+        }
+
+        p {
+            font-size: 14px;
+            text-align: center;
+            max-width: 90%;
+            margin: 0 auto 15px;
+        }
+
+        textarea, select {
+            width: 100%;
+            max-width: 800px;
+            background-color: var(--card-bg);
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            padding: 10px;
+            margin: 10px auto;
+            display: block;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            transition: all 0.5s ease;
+        }
+        @media (min-width: 768px) {
+            textarea, select { font-size: 16px; padding: 12px; }
+        }
+        textarea:focus, select:focus { outline: none; box-shadow: 0 0 8px var(--shadow); }
+
+        .checkbox-group {
+            display: grid;
+            gap: 10px;
+            margin: 20px auto;
+            width: 100%;
+            max-width: 1200px;
+        }
+        @media (min-width: 768px) { .checkbox-group { grid-template-columns: repeat(3, 1fr); } }
+        @media (max-width: 767px) { .checkbox-group { grid-template-columns: repeat(2, 1fr); } }
+
+        .dork-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .dork-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background-color: var(--card-bg);
+            color: var(--text);
+            padding: 10px 14px;
+            border-radius: 5px;
+            cursor: pointer;
+            flex-grow: 1;
+            font-size: 13px;
+            min-height: 50px;
+            transition: all 0.3s ease;
+        }
+        @media (min-width: 768px) { .dork-label { font-size: 14px; } }
+        .dork-label:hover {
+            background-color: var(--hover-bg);
+            color: var(--hover-text);
+            box-shadow: 0 0 8px var(--shadow);
+            transform: scale(1.02);
+        }
+        .dork-icon { font-size: 22px; width: 24px; text-align: center; }
+
+        input[type="checkbox"] {
+            accent-color: var(--accent);
+            width: 16px;
+            height: 16px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 20px auto;
+            max-width: 90%;
+        }
+        button {
+            background-color: var(--btn-bg);
+            color: var(--btn-text);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        @media (min-width: 768px) { button { padding: 12px 24px; font-size: 16px; } }
+        button:hover {
+            background-color: #cccccc;
+            box-shadow: 0 0 8px var(--shadow);
+            transform: scale(1.05);
+        }
+        body.light-mode button:hover { background-color: #333333; }
+
+        .note { font-size: 11px; color: var(--note); text-align: center; margin-top: 20px; }
+        .legal { font-size: 11px; color: var(--legal); text-align: center; margin-top: 10px; }
+
+        #theme-toggle {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: inherit;
+            transition: transform 0.3s ease;
+        }
+        #theme-toggle:hover { transform: rotate(15deg); }
+
+        #linksOutput {
+            margin: 20px auto;
+            max-width: 90%;
+            padding: 15px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 5px;
+            display: none;
+            transition: opacity 0.5s ease;
+        }
+        #linksOutput a {
+            color: var(--text);
+            display: block;
+            margin: 5px 0;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+    <button id="theme-toggle" onclick="toggleTheme()">🌙</button>
+
+    <!-- SECTION 1: CREDENTIAL DORKER -->
+    <div class="section" id="credential-section">
+        <h1>Dorker — Credential & Config</h1>
+        <h2>🔍 Cari Login, Config, Backup, API Key, dll.</h2>
+        <p>Masukkan domain/subdomain target (satu baris = satu target). Pilih dork lalu klik Open Selected. Gunakan hanya untuk domain yang kamu miliki atau punya izin testing.</p>
+
+        <label for="targets-cred">Target (domain atau subdomain)</label>
+        <textarea id="targets-cred" rows="5" placeholder="contoh.com&#10;sub.contoh.com"></textarea>
+
+        <label for="searchEngine-cred">Pilih mesin pencari</label>
+        <select id="searchEngine-cred">
+            <option value="google">Google</option>
+            <option value="duckduckgo">DuckDuckGo</option>
+            <option value="bing">Bing</option>
+        </select>
+
+        <label for="maxTabs-cred">Max tabs per click</label>
+        <select id="maxTabs-cred">
+            <option value="10">10</option>
+            <option value="20">20</option>
+            <option value="50">50</option>
+        </select>
+
+        <label>Pilih dork untuk credential</label>
+        <div class="checkbox-group" id="dorks-cred">
+            <!-- Dorks akan diisi via JS -->
+        </div>
+
+        <div class="button-group">
+            <button onclick="selectAll('cred')">Select All</button>
+            <button onclick="clearSelection('cred')">Clear</button>
+            <button onclick="openSelected('cred')">Open Selected</button>
+            <button onclick="generateLinks('cred')">Generate Links</button>
+            <button onclick="downloadCSV('cred')">Download CSV</button>
+        </div>
+        <div id="linksOutput-cred"></div>
+    </div>
+
+    <!-- SECTION 2: BLIND XSS DORKER -->
+    <div class="section" id="xss-section">
+        <h1>Blind XSS Dorker</h1>
+        <h2>📧 Cari Form Kontak, Feedback, Support, dll.</h2>
+        <p>Masukkan domain/subdomain target. Pilih dork Blind XSS atau klik label untuk buka langsung. Gunakan hanya untuk domain yang kamu miliki atau punya izin testing.</p>
+
+        <label for="targets-xss">Target (domain atau subdomain)</label>
+        <textarea id="targets-xss" rows="5" placeholder="contoh.com&#10;sub.contoh.com"></textarea>
+
+        <label for="searchEngine-xss">Pilih mesin pencari</label>
+        <select id="searchEngine-xss">
+            <option value="google">Google</option>
+            <option value="duckduckgo">DuckDuckGo</option>
+            <option value="bing">Bing</option>
+        </select>
+
+        <label for="maxTabs-xss">Max tabs per click</label>
+        <select id="maxTabs-xss">
+            <option value="10">10</option>
+            <option value="20">20</option>
+            <option value="50">50</option>
+        </select>
+
+        <label>Pilih dork Blind XSS</label>
+        <div class="checkbox-group" id="dorks-xss">
+            <!-- Dorks akan diisi via JS -->
+        </div>
+
+        <div class="button-group">
+            <button onclick="selectAll('xss')">Select All</button>
+            <button onclick="clearSelection('xss')">Clear</button>
+            <button onclick="openSelected('xss')">Open Selected</button>
+            <button onclick="generateLinks('xss')">Generate Links</button>
+            <button onclick="downloadCSV('xss')">Download CSV</button>
+        </div>
+        <div id="linksOutput-xss"></div>
+    </div>
+
+    <p class="note">Catatan: Browser mungkin memblokir popup jika jumlah tab terlalu banyak. Gunakan Generate Links atau Download CSV untuk buka manual.</p>
+    <p class="legal">Legal: Gunakan hanya untuk pengujian dengan izin eksplisit. Penyalahgunaan adalah tanggung jawabmu sendiri.</p>
+
+    <script>
+        // === DATA DORKS ===
+        const dorksCred = {
+            loginPages: { label: "Login Pages", icon: "🔐", query: 'site:{domain} inurl:(login | signin | sign-in | auth)' },
+            adminLogin: { label: "Admin Login", icon: "🛡️", query: 'site:{domain} inurl:(admin | administrator | login | dashboard) intitle:(admin | login)' },
+            configFiles: { label: "Config Files", icon: "⚙️", query: 'site:{domain} ext:(conf | config | cfg | ini) inurl:(config | settings)' },
+            passwordFiles: { label: "Password Files", icon: "🔑", query: 'site:{domain} ext:(txt | doc | pdf) intext:(password | pwd | credentials)' },
+            databaseDumps: { label: "Database Dumps", icon: "💾", query: 'site:{domain} ext:(sql | db | dump) intext:(database | dump)' },
+            backupFiles: { label: "Backup Files", icon: "📁", query: 'site:{domain} ext:(bak | backup | old) inurl:(backup | archive)' },
+            exposedLogs: { label: "Exposed Logs", icon: "📜", query: 'site:{domain} ext:(log | txt) inurl:(log | logs | access)' },
+            apiKeys: { label: "API Keys", icon: "🔒", query: 'site:{domain} intext:(api_key | apikey | secret_key | token)' },
+            phpInfo: { label: "PHP Info", icon: "ℹ️", query: 'site:{domain} inurl:(phpinfo | info.php)' },
+            envFiles: { label: ".env Files", icon: "🌐", query: 'site:{domain} inurl:.env intext:(DB_PASSWORD | API_KEY | SECRET)' },
+            sqlFiles: { label: "SQL Files", icon: "📚", query: 'site:{domain} ext:sql intext:(INSERT | SELECT | CREATE)' },
+            credentialLeak: { label: "Credential Leak", icon: "🚨", query: 'site:{domain} intext:(username | password | credentials | login) ext:(txt | pdf | doc)' }
+        };
+
+        const dorksXSS = {
+            contactForm: { label: "Contact Form", icon: "📧", query: 'site:{domain} intitle:"contact.php" | intitle:"contactus" | intitle:"contactus.php" | intitle:"contactus.aspx" | intitle:"contactus.asp" | intitle:"contactus.html" | intitle:"contact-us.html" | intitle:"contact_us.html" | intitle:"contact.html" | intitle:"contactus.html"' },
+            contactPage: { label: "Contact Page", icon: "📄", query: 'site:{domain} inurl:"contact.php" | inurl:"contactus" | inurl:"contactus.php" | inurl:"contactus.aspx" | inurl:"contactus.asp" | inurl:"contactus.html" | inurl:"contact-us.html" | inurl:"contact_us.html" | inurl:"contact.html" | inurl:"contactus.html"' },
+            feedbackForm: { label: "Feedback Form", icon: "📝", query: 'site:{domain} inurl:"feedback.php" | inurl:"send feedback" | inurl:"feedbackus.php" | inurl:"feedback.aspx" | inurl:"feedback.asp" | inurl:"feedback.html" | intitle:"send feedback"' },
+            submitRequest: { label: "Submit Request", icon: "📩", query: 'site:{domain} inurl:"Send Us a Message" | intitle:"Send Us a Message"' },
+            contactSupport: { label: "Contact Support", icon: "🛠️", query: 'site:{domain} intitle:"support.php" | intitle:"support" | intitle:"contactus.php" | intitle:"support.aspx" | intitle:"support.asp" | intitle:"support.html" | intitle:"support-us.html"' },
+            submitPages: { label: "Submit Pages", icon: "📤", query: 'site:{domain} inurl:"submit messages" | inurl:"submit" | inurl:"submit messages" | inurl:"submit form" | intitle:"submit form"' },
+            supportCenter: { label: "Support Center", icon: "🏢", query: 'site:{domain} inurl:"Support Center" | intitle:"Support Center"' },
+            submitForms: { label: "Submit Forms", icon: "📋", query: 'site:{domain} intitle:"submit.php" | intitle:"submit" | intitle:"submit.php" | intitle:"submit.aspx" | intitle:"submit.asp" | intitle:"submit.html" | intitle:"submit-us.html" | intitle:"submit_us.html" | intitle:"submit.html" | intitle:"submit.html"' },
+            requestSubmit: { label: "Request Submit", icon: "📨", query: 'site:{domain} inurl:"submit a request" | intitle:"submit a request"' },
+            reportPages: { label: "Report Pages", icon: "📊", query: 'site:{domain} inurl:"submit a report" | intitle:"submit a report"' },
+            formPages: { label: "Form Pages", icon: "📄", query: 'site:{domain} intext:"Attachments (optional)"' },
+            requestTypeForms: { label: "Request Type Forms", icon: "📑", query: 'site:{domain} inurl:"request-form" | inurl:"submit-a-request" | inurl:"request-form.aspx" | inurl:"request.php" | intitle:"request form"' },
+            jobApplication: { label: "Job Application", icon: "💼", query: 'site:{domain} intitle:"job application" | intitle:"careers" | intitle:"apply now" | inurl:"job" | inurl:"career" | inurl:"apply"' },
+            newsletterSubscription: { label: "Newsletter Subscription", icon: "📰", query: 'site:{domain} intitle:"newsletter" | intitle:"subscribe" | inurl:"newsletter" | inurl:"subscribe"' },
+            supportTickets: { label: "Support Tickets", icon: "🎟️", query: 'site:{domain} intitle:"support ticket" | intitle:"create ticket" | inurl:"ticket" | inurl:"support"' },
+            reportAbuse: { label: "Report Abuse", icon: "🚨", query: 'site:{domain} intitle:"report abuse" | intitle:"report" | inurl:"report" | inurl:"abuse"' },
+            testimonialSubmission: { label: "Testimonial Submission", icon: "🌟", query: 'site:{domain} intitle:"testimonial" | intitle:"submit testimonial" | inurl:"testimonial" | inurl:"review"' },
+            askQuestion: { label: "Ask Question", icon: "❓", query: 'site:{domain} intitle:"ask a question" | intitle:"question" | inurl:"question" | inurl:"ask"' },
+            requestCallback: { label: "Request Callback", icon: "📞", query: 'site:{domain} intitle:"request a callback" | intitle:"callback" | inurl:"callback" | inurl:"call"' },
+            bugReport: { label: "Bug Report", icon: "🐞", query: 'site:{domain} intitle:"bug report" | intitle:"report bug" | inurl:"bug" | inurl:"report"' },
+            suggestionBox: { label: "Suggestion Box", icon: "💡", query: 'site:{domain} intitle:"suggestion" | intitle:"feedback" | inurl:"suggestion" | inurl:"idea"' },
+            registrationForms: { label: "Registration Forms", icon: "📝", query: 'site:{domain} intitle:"register" | intitle:"sign up" | inurl:"register" | inurl:"signup"' },
+            quoteRequest: { label: "Quote Request", icon: "💸", query: 'site:{domain} intitle:"quote request" | intitle:"get a quote" | inurl:"quote" | inurl:"request"' },
+            reviewSubmission: { label: "Review Submission", icon: "⭐", query: 'site:{domain} intitle:"write a review" | intitle:"review" | inurl:"review" | inurl:"rating"' }
+        };
+
+        const searchEngines = {
+            google: 'https://www.google.com/search?q=',
+            duckduckgo: 'https://duckduckgo.com/?q=',
+            bing: 'https://www.bing.com/search?q='
+        };
+
+        // Render Dorks
+        function renderDorks(containerId, dorksObj, type) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            Object.keys(dorksObj).forEach(key => {
+                const d = dorksObj[key];
+                const div = document.createElement('div');
+                div.className = 'dork-item';
+                div.innerHTML = `
+                    <input type="checkbox" name="dork-${type}" value="${key}">
+                    <div class="dork-label" onclick="openSingleDork('${key}', '${type}')">
+                        <span class="dork-icon">${d.icon}</span> ${d.label}
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        // Init
+        renderDorks('dorks-cred', dorksCred, 'cred');
+        renderDorks('dorks-xss', dorksXSS, 'xss');
+
+        // Universal Functions
+        function getTargets(type) { return document.getElementById(`targets-${type}`).value.split('\n').filter(t => t.trim()); }
+        function getEngine(type) { return document.getElementById(`searchEngine-${type}`).value; }
+        function getMaxTabs(type) { return parseInt(document.getElementById(`maxTabs-${type}`).value); }
+        function getSelected(type) { return Array.from(document.querySelectorAll(`input[name="dork-${type}"]:checked`)).map(cb => cb.value); }
+        function getOutput(type) { return document.getElementById(`linksOutput-${type}`); }
+
+        function selectAll(type) { document.querySelectorAll(`input[name="dork-${type}"]`).forEach(cb => cb.checked = true); }
+        function clearSelection(type) {
+            document.querySelectorAll(`input[name="dork-${type}"]`).forEach(cb => cb.checked = false);
+            getOutput(type).style.display = 'none';
+            getOutput(type).innerHTML = '';
+        }
+
+        function openSingleDork(dorkKey, type) {
+            const targets = getTargets(type);
+            const engine = getEngine(type);
+            const maxTabs = getMaxTabs(type);
+            const dorks = type === 'cred' ? dorksCred : dorksXSS;
+            let count = 0;
+            if (!targets.length) return alert('Masukkan target!');
+            for (const t of targets) {
+                if (count >= maxTabs) break;
+                const query = dorks[dorkKey].query.replace('{domain}', t.trim());
+                window.open(searchEngines[engine] + encodeURIComponent(query), '_blank');
+                count++;
+            }
+        }
+
+        function openSelected(type) {
+            const targets = getTargets(type);
+            const selected = getSelected(type);
+            const engine = getEngine(type);
+            const maxTabs = getMaxTabs(type);
+            const dorks = type === 'cred' ? dorksCred : dorksXSS;
+            let count = 0;
+            if (!targets.length || !selected.length) return alert('Pilih target & dork!');
+            for (const t of targets) {
+                for (const d of selected) {
+                    if (count >= maxTabs) break;
+                    const query = dorks[d].query.replace('{domain}', t.trim());
+                    window.open(searchEngines[engine] + encodeURIComponent(query), '_blank');
+                    count++;
+                }
+                if (count >= maxTabs) break;
+            }
+        }
+
+        function generateLinks(type) {
+            const targets = getTargets(type);
+            const selected = getSelected(type);
+            const engine = getEngine(type);
+            const dorks = type === 'cred' ? dorksCred : dorksXSS;
+            const output = getOutput(type);
+            if (!targets.length || !selected.length) return alert('Pilih target & dork!');
+            const links = [];
+            for (const t of targets) {
+                for (const d of selected) {
+                    const query = dorks[d].query.replace('{domain}', t.trim());
+                    const url = searchEngines[engine] + encodeURIComponent(query);
+                    links.push(`<a href="${url}" target="_blank">${query}</a>`);
+                }
+            }
+            output.innerHTML = links.join('<br>');
+            output.style.display = 'block';
+            output.style.opacity = '0';
+            setTimeout(() => output.style.opacity = '1', 10);
+        }
+
+        function downloadCSV(type) {
+            const targets = getTargets(type);
+            const selected = getSelected(type);
+            const engine = getEngine(type);
+            const dorks = type === 'cred' ? dorksCred : dorksXSS;
+            if (!targets.length || !selected.length) return alert('Pilih target & dork!');
+            let csv = 'Target,Dork,URL\n';
+            for (const t of targets) {
+                for (const d of selected) {
+                    const query = dorks[d].query.replace('{domain}', t.trim());
+                    const url = searchEngines[engine] + encodeURIComponent(query);
+                    csv += `"${t.trim()}","${d}","${url}"\n`;
+                }
+            }
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = type === 'cred' ? 'dorker_credentials.csv' : 'blind_xss_dorks.csv';
+            a.click();
+        }
+
+        // Theme
+        function toggleTheme() {
+            const body = document.body;
+            const btn = document.getElementById('theme-toggle');
+            body.classList.toggle('light-mode');
+            btn.innerHTML = body.classList.contains('light-mode') ? '☀️' : '🌙';
+            localStorage.setItem('theme', body.classList.contains('light-mode') ? 'light' : 'dark');
+        }
+
+        window.onload = () => {
+            const theme = localStorage.getItem('theme');
+            if (theme === 'light') {
+                document.body.classList.add('light-mode');
+                document.getElementById('theme-toggle').innerHTML = '☀️';
+            }
+        };
+    </script>
+</body>
+</html>
