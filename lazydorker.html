@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dorker Unified — Credential & Blind XSS</title>
+    <title>LazyDorker - Sensitive data & Blind XSS</title>
     <style>
         :root {
             --bg: #000000;
@@ -213,26 +213,16 @@
 
     <!-- SECTION 1: CREDENTIAL DORKER -->
     <div class="section" id="credential-section">
-        <h1>Dorker — Credential & Config</h1>
+        <h1>LazyDorker — Sensitive Data & Config</h1>
         <h2>🔍 Cari Login, Config, Backup, API Key, dll.</h2>
         <p>Masukkan domain/subdomain target (satu baris = satu target). Pilih dork lalu klik Open Selected. Gunakan hanya untuk domain yang kamu miliki atau punya izin testing.</p>
 
         <label for="targets-cred">Target (domain atau subdomain)</label>
         <textarea id="targets-cred" rows="5" placeholder="contoh.com&#10;sub.contoh.com"></textarea>
 
-        <label for="searchEngine-cred">Pilih mesin pencari</label>
-        <select id="searchEngine-cred">
-            <option value="google">Google</option>
-            <option value="duckduckgo">DuckDuckGo</option>
-            <option value="bing">Bing</option>
-        </select>
 
-        <label for="maxTabs-cred">Max tabs per click</label>
-        <select id="maxTabs-cred">
-            <option value="10">10</option>
-            <option value="20">20</option>
-            <option value="50">50</option>
-        </select>
+
+
 
         <label>Pilih dork untuk credential</label>
         <div class="checkbox-group" id="dorks-cred">
@@ -251,26 +241,16 @@
 
     <!-- SECTION 2: BLIND XSS DORKER -->
     <div class="section" id="xss-section">
-        <h1>Blind XSS Dorker</h1>
+        <h1>LazyDorker — Blind XSS</h1>
         <h2>📧 Cari Form Kontak, Feedback, Support, dll.</h2>
         <p>Masukkan domain/subdomain target. Pilih dork Blind XSS atau klik label untuk buka langsung. Gunakan hanya untuk domain yang kamu miliki atau punya izin testing.</p>
 
         <label for="targets-xss">Target (domain atau subdomain)</label>
         <textarea id="targets-xss" rows="5" placeholder="contoh.com&#10;sub.contoh.com"></textarea>
 
-        <label for="searchEngine-xss">Pilih mesin pencari</label>
-        <select id="searchEngine-xss">
-            <option value="google">Google</option>
-            <option value="duckduckgo">DuckDuckGo</option>
-            <option value="bing">Bing</option>
-        </select>
 
-        <label for="maxTabs-xss">Max tabs per click</label>
-        <select id="maxTabs-xss">
-            <option value="10">10</option>
-            <option value="20">20</option>
-            <option value="50">50</option>
-        </select>
+
+
 
         <label>Pilih dork Blind XSS</label>
         <div class="checkbox-group" id="dorks-xss">
@@ -287,7 +267,7 @@
         <div id="linksOutput-xss"></div>
     </div>
 
-    <p class="note">Catatan: Browser mungkin memblokir popup jika jumlah tab terlalu banyak. Gunakan Generate Links atau Download CSV untuk buka manual.</p>
+    <p class="note">Catatan: Jika pertama kali pakai ini kemungkinan browser tidak mengizinkan langsung membuka semua tab yang dipilih, lakukan cara berikut:<br>1. Masukkan target dan pilih lebih dari 1 tipe dorking<br>2. Klik Open Selected<br>3. Kembali ke halaman web ini dan lihat di pojok kiri atas (mungkin bisa berbeda tergantung browser)<br>4. Cari opsi izinkan popup untuk phims403.github.io. Jika sudah maka browser sudah siap membuka banyak tab sekaligus<br><br>Browser mungkin memblokir popup jika jumlah tab terlalu banyak. Gunakan Generate Links atau Download CSV untuk buka manual.</p>
     <p class="legal">Legal: Gunakan hanya untuk pengujian dengan izin eksplisit. Penyalahgunaan adalah tanggung jawabmu sendiri.</p>
 
     <script>
@@ -334,11 +314,7 @@
             reviewSubmission: { label: "Review Submission", icon: "⭐", query: 'site:{domain} intitle:"write a review" | intitle:"review" | inurl:"review" | inurl:"rating"' }
         };
 
-        const searchEngines = {
-            google: 'https://www.google.com/search?q=',
-            duckduckgo: 'https://duckduckgo.com/?q=',
-            bing: 'https://www.bing.com/search?q='
-        };
+        const googleUrl = 'https://www.google.com/search?q=';
 
         // Render Dorks
         function renderDorks(containerId, dorksObj, type) {
@@ -364,8 +340,6 @@
 
         // Universal Functions
         function getTargets(type) { return document.getElementById(`targets-${type}`).value.split('\n').filter(t => t.trim()); }
-        function getEngine(type) { return document.getElementById(`searchEngine-${type}`).value; }
-        function getMaxTabs(type) { return parseInt(document.getElementById(`maxTabs-${type}`).value); }
         function getSelected(type) { return Array.from(document.querySelectorAll(`input[name="dork-${type}"]:checked`)).map(cb => cb.value); }
         function getOutput(type) { return document.getElementById(`linksOutput-${type}`); }
 
@@ -378,42 +352,30 @@
 
         function openSingleDork(dorkKey, type) {
             const targets = getTargets(type);
-            const engine = getEngine(type);
-            const maxTabs = getMaxTabs(type);
             const dorks = type === 'cred' ? dorksCred : dorksXSS;
-            let count = 0;
             if (!targets.length) return alert('Masukkan target!');
             for (const t of targets) {
-                if (count >= maxTabs) break;
                 const query = dorks[dorkKey].query.replace('{domain}', t.trim());
-                window.open(searchEngines[engine] + encodeURIComponent(query), '_blank');
-                count++;
+                window.open(googleUrl + encodeURIComponent(query), '_blank');
             }
         }
 
         function openSelected(type) {
             const targets = getTargets(type);
             const selected = getSelected(type);
-            const engine = getEngine(type);
-            const maxTabs = getMaxTabs(type);
             const dorks = type === 'cred' ? dorksCred : dorksXSS;
-            let count = 0;
             if (!targets.length || !selected.length) return alert('Pilih target & dork!');
             for (const t of targets) {
                 for (const d of selected) {
-                    if (count >= maxTabs) break;
                     const query = dorks[d].query.replace('{domain}', t.trim());
-                    window.open(searchEngines[engine] + encodeURIComponent(query), '_blank');
-                    count++;
+                    window.open(googleUrl + encodeURIComponent(query), '_blank');
                 }
-                if (count >= maxTabs) break;
             }
         }
 
         function generateLinks(type) {
             const targets = getTargets(type);
             const selected = getSelected(type);
-            const engine = getEngine(type);
             const dorks = type === 'cred' ? dorksCred : dorksXSS;
             const output = getOutput(type);
             if (!targets.length || !selected.length) return alert('Pilih target & dork!');
@@ -421,7 +383,7 @@
             for (const t of targets) {
                 for (const d of selected) {
                     const query = dorks[d].query.replace('{domain}', t.trim());
-                    const url = searchEngines[engine] + encodeURIComponent(query);
+                    const url = googleUrl + encodeURIComponent(query);
                     links.push(`<a href="${url}" target="_blank">${query}</a>`);
                 }
             }
@@ -434,14 +396,13 @@
         function downloadCSV(type) {
             const targets = getTargets(type);
             const selected = getSelected(type);
-            const engine = getEngine(type);
             const dorks = type === 'cred' ? dorksCred : dorksXSS;
             if (!targets.length || !selected.length) return alert('Pilih target & dork!');
             let csv = 'Target,Dork,URL\n';
             for (const t of targets) {
                 for (const d of selected) {
                     const query = dorks[d].query.replace('{domain}', t.trim());
-                    const url = searchEngines[engine] + encodeURIComponent(query);
+                    const url = googleUrl + encodeURIComponent(query);
                     csv += `"${t.trim()}","${d}","${url}"\n`;
                 }
             }
@@ -471,4 +432,3 @@
     </script>
 </body>
 </html>
-
