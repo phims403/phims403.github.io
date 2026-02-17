@@ -220,9 +220,11 @@
         <label for="targets-cred">Target (domain atau subdomain)</label>
         <textarea id="targets-cred" rows="5" placeholder="contoh.com&#10;sub.contoh.com"></textarea>
 
-
-
-
+        <label for="engine-cred">Search Engine</label>
+        <select id="engine-cred">
+            <option value="google">Google</option>
+            <option value="yandex">Yandex</option>
+        </select>
 
         <label>Pilih dork untuk credential</label>
         <div class="checkbox-group" id="dorks-cred">
@@ -239,7 +241,31 @@
         <div id="linksOutput-cred"></div>
     </div>
 
-    <!-- SECTION 2: BLIND XSS DORKER -->
+    <!-- SECTION 2: GITHUB DORKER -->
+    <div class="section" id="github-section">
+        <h1>LazyDorker — GitHub Dork</h1>
+        <h2>🐙 Cari File Sensitif di Repository GitHub</h2>
+        <p>Masukkan nama organisasi, username, atau target untuk mencari file sensitif di repository publik. Gunakan hanya untuk repository yang kamu miliki atau punya izin testing.</p>
+
+        <label for="targets-github">Target (organization, username, atau keyword)</label>
+        <textarea id="targets-github" rows="5" placeholder="org:targetcompany&#10;user:targetuser&#10;targetkeyword"></textarea>
+
+        <label>Pilih dork GitHub</label>
+        <div class="checkbox-group" id="dorks-github">
+            <!-- Dorks akan diisi via JS -->
+        </div>
+
+        <div class="button-group">
+            <button onclick="selectAll('github')">Select All</button>
+            <button onclick="clearSelection('github')">Clear</button>
+            <button onclick="openSelected('github')">Open Selected</button>
+            <button onclick="generateLinks('github')">Generate Links</button>
+            <button onclick="downloadCSV('github')">Download CSV</button>
+        </div>
+        <div id="linksOutput-github"></div>
+    </div>
+
+    <!-- SECTION 3: BLIND XSS DORKER -->
     <div class="section" id="xss-section">
         <h1>LazyDorker — Blind XSS</h1>
         <h2>📧 Cari Form Kontak, Feedback, Support, dll.</h2>
@@ -248,9 +274,11 @@
         <label for="targets-xss">Target (domain atau subdomain)</label>
         <textarea id="targets-xss" rows="5" placeholder="contoh.com&#10;sub.contoh.com"></textarea>
 
-
-
-
+        <label for="engine-xss">Search Engine</label>
+        <select id="engine-xss">
+            <option value="google">Google</option>
+            <option value="yandex">Yandex</option>
+        </select>
 
         <label>Pilih dork Blind XSS</label>
         <div class="checkbox-group" id="dorks-xss">
@@ -314,7 +342,67 @@
             reviewSubmission: { label: "Review Submission", icon: "⭐", query: 'site:{domain} intitle:"write a review" | intitle:"review" | inurl:"review" | inurl:"rating"' }
         };
 
+        const dorksGithub = {
+            envFiles: { label: ".env Files", icon: "🌐", query: '{target} filename:.env' },
+            envPassword: { label: ".env with Password", icon: "🔐", query: '{target} filename:.env DB_PASSWORD' },
+            envSecret: { label: ".env with Secret", icon: "🔑", query: '{target} filename:.env SECRET_KEY' },
+            envApi: { label: ".env with API Key", icon: "🔒", query: '{target} filename:.env API_KEY' },
+            pemFiles: { label: "PEM Private Keys", icon: "🗝️", query: '{target} extension:pem private' },
+            keyFiles: { label: "Key Files", icon: "🔑", query: '{target} extension:key' },
+            sshConfig: { label: "SSH Config", icon: "🔧", query: '{target} filename:ssh_config' },
+            sftpConfig: { label: "SFTP Config", icon: "📡", query: '{target} filename:sftp-config' },
+            awsKeys: { label: "AWS Keys", icon: "☁️", query: '{target} filename:credentials aws_access_key_id' },
+            secretsYml: { label: "secrets.yml", icon: "📜", query: '{target} filename:secrets.yml password' },
+            configPhp: { label: "config.php", icon: "⚙️", query: '{target} filename:config.php password' },
+            settingsPy: { label: "settings.py", icon: "🐍", query: '{target} filename:settings.py SECRET_KEY' },
+            databaseSql: { label: "Database SQL", icon: "💾", query: '{target} extension:sql' },
+            databaseDump: { label: "Database Dump", icon: "📦", query: '{target} filename:dump.sql' },
+            idRsa: { label: "id_rsa", icon: "🔑", query: '{target} filename:id_rsa' },
+            knownHosts: { label: "known_hosts", icon: "🖥️", query: '{target} filename:known_hosts' },
+            rdsConfig: { label: "RDS Config", icon: "🗄️", query: '{target} filename:rds.conf' },
+            serverConfig: { label: "Server Config", icon: "🖥️", query: '{target} filename:server.cfg rcon password' },
+            htaccess: { label: ".htaccess", icon: "🛡️", query: '{target} filename:.htaccess' },
+            gitlabConfig: { label: "gitlab.rb", icon: "🦊", query: '{target} filename:gitlab.rb' },
+            dockerCompose: { label: "docker-compose.yml", icon: "🐳", query: '{target} filename:docker-compose.yml' },
+            kubeConfig: { label: "kubeconfig", icon: "☸️", query: '{target} filename:kubeconfig' },
+            terraformVars: { label: "terraform.tfvars", icon: "🏗️", query: '{target} filename:terraform.tfvars' },
+            ansibleVault: { label: "ansible vault", icon: "📦", query: '{target} filename:ansible.vault' },
+            connectionString: { label: "Connection String", icon: "🔗", query: '{target} filename:connection.xml' },
+            firebaseConfig: { label: "Firebase Config", icon: "🔥", query: '{target} filename:firebaseConfig.json' },
+            googleServices: { label: "google-services.json", icon: "🔍", query: '{target} filename:google-services.json' },
+            npmAuth: { label: ".npmrc auth", icon: "📦", query: '{target} filename:.npmrc _auth' },
+            gradleProperties: { label: "gradle.properties", icon: "🐘", query: '{target} filename:gradle.properties' },
+            localSettings: { label: "local.settings.json", icon: "⚙️", query: '{target} filename:local.settings.json' },
+            azureConfig: { label: "azure credentials", icon: "🔷", query: '{target} filename:azure_credentials.json' },
+            serviceAccount: { label: "service account", icon: "👤", query: '{target} filename:service-account.json' },
+            slackToken: { label: "Slack Token", icon: "💬", query: '{target} filename:slack token' },
+            discordToken: { label: "Discord Token", icon: "🎮", query: '{target} filename:discord token' },
+            stripeApiKey: { label: "Stripe API Key", icon: "💳", query: '{target} filename:stripe api_key' },
+            mailchimp: { label: "Mailchimp API", icon: "📧", query: '{target} filename:mailchimp api_key' },
+            twilio: { label: "Twilio Account", icon: "📞", query: '{target} filename:twilio account_sid' },
+            sendgrid: { label: "SendGrid API", icon: "📮", query: '{target} filename:sendgrid api_key' },
+            githubToken: { label: "GitHub Token", icon: "🐙", query: '{target} filename:github_token' },
+            gitHubPat: { label: "GitHub PAT", icon: "🔑", query: '{target} filename:.gitconfig' },
+            herokuApiKey: { label: "Heroku API Key", icon: "🟣", query: '{target} filename:heroku api_key' },
+            jwtToken: { label: "JWT Token", icon: "🎫", query: '{target} extension:json jwt' },
+            apiToken: { label: "api_token", icon: "🔑", query: '{target} filename:api_token' },
+            accessToken: { label: "access_token", icon: "🎫", query: '{target} filename:access_token' },
+            configFiles: { label: "config files", icon: "⚙️", query: '{target} filename:config password' },
+            passwordFiles: { label: "password files", icon: "🔐", query: '{target} filename:password' },
+            credentialFiles: { label: "credential files", icon: "🔒", query: '{target} filename:credentials' },
+            backupFiles: { label: "backup files", icon: "📁", query: '{target} filename:backup' },
+            dumpFiles: { label: "dump files", icon: "📦", query: '{target} filename:dump' }
+        };
+
         const googleUrl = 'https://www.google.com/search?q=';
+        const yandexUrl = 'https://yandex.com/search/?text=';
+        const githubUrl = 'https://github.com/search?q=';
+
+        function getSearchUrl(type) {
+            if (type === 'github') return githubUrl;
+            const engine = document.getElementById(`engine-${type}`).value;
+            return engine === 'yandex' ? yandexUrl : googleUrl;
+        }
 
         // Render Dorks
         function renderDorks(containerId, dorksObj, type) {
@@ -336,6 +424,7 @@
 
         // Init
         renderDorks('dorks-cred', dorksCred, 'cred');
+        renderDorks('dorks-github', dorksGithub, 'github');
         renderDorks('dorks-xss', dorksXSS, 'xss');
 
         // Universal Functions
@@ -352,23 +441,33 @@
 
         function openSingleDork(dorkKey, type) {
             const targets = getTargets(type);
-            const dorks = type === 'cred' ? dorksCred : dorksXSS;
+            let dorks;
+            let placeholder;
+            if (type === 'cred') { dorks = dorksCred; placeholder = '{domain}'; }
+            else if (type === 'github') { dorks = dorksGithub; placeholder = '{target}'; }
+            else { dorks = dorksXSS; placeholder = '{domain}'; }
             if (!targets.length) return alert('Masukkan target!');
+            const searchUrl = getSearchUrl(type);
             for (const t of targets) {
-                const query = dorks[dorkKey].query.replace('{domain}', t.trim());
-                window.open(googleUrl + encodeURIComponent(query), '_blank');
+                const query = dorks[dorkKey].query.replace(placeholder, t.trim());
+                window.open(searchUrl + encodeURIComponent(query) + (type === 'github' ? '&type=code' : ''), '_blank');
             }
         }
 
         function openSelected(type) {
             const targets = getTargets(type);
             const selected = getSelected(type);
-            const dorks = type === 'cred' ? dorksCred : dorksXSS;
+            let dorks;
+            let placeholder;
+            if (type === 'cred') { dorks = dorksCred; placeholder = '{domain}'; }
+            else if (type === 'github') { dorks = dorksGithub; placeholder = '{target}'; }
+            else { dorks = dorksXSS; placeholder = '{domain}'; }
             if (!targets.length || !selected.length) return alert('Pilih target & dork!');
+            const searchUrl = getSearchUrl(type);
             for (const t of targets) {
                 for (const d of selected) {
-                    const query = dorks[d].query.replace('{domain}', t.trim());
-                    window.open(googleUrl + encodeURIComponent(query), '_blank');
+                    const query = dorks[d].query.replace(placeholder, t.trim());
+                    window.open(searchUrl + encodeURIComponent(query) + (type === 'github' ? '&type=code' : ''), '_blank');
                 }
             }
         }
@@ -376,14 +475,19 @@
         function generateLinks(type) {
             const targets = getTargets(type);
             const selected = getSelected(type);
-            const dorks = type === 'cred' ? dorksCred : dorksXSS;
+            let dorks;
+            let placeholder;
+            if (type === 'cred') { dorks = dorksCred; placeholder = '{domain}'; }
+            else if (type === 'github') { dorks = dorksGithub; placeholder = '{target}'; }
+            else { dorks = dorksXSS; placeholder = '{domain}'; }
             const output = getOutput(type);
             if (!targets.length || !selected.length) return alert('Pilih target & dork!');
+            const searchUrl = getSearchUrl(type);
             const links = [];
             for (const t of targets) {
                 for (const d of selected) {
-                    const query = dorks[d].query.replace('{domain}', t.trim());
-                    const url = googleUrl + encodeURIComponent(query);
+                    const query = dorks[d].query.replace(placeholder, t.trim());
+                    const url = searchUrl + encodeURIComponent(query) + (type === 'github' ? '&type=code' : '');
                     links.push(`<a href="${url}" target="_blank">${query}</a>`);
                 }
             }
@@ -396,20 +500,29 @@
         function downloadCSV(type) {
             const targets = getTargets(type);
             const selected = getSelected(type);
-            const dorks = type === 'cred' ? dorksCred : dorksXSS;
+            let dorks;
+            let placeholder;
+            if (type === 'cred') { dorks = dorksCred; placeholder = '{domain}'; }
+            else if (type === 'github') { dorks = dorksGithub; placeholder = '{target}'; }
+            else { dorks = dorksXSS; placeholder = '{domain}'; }
             if (!targets.length || !selected.length) return alert('Pilih target & dork!');
+            const searchUrl = getSearchUrl(type);
             let csv = 'Target,Dork,URL\n';
             for (const t of targets) {
                 for (const d of selected) {
-                    const query = dorks[d].query.replace('{domain}', t.trim());
-                    const url = googleUrl + encodeURIComponent(query);
+                    const query = dorks[d].query.replace(placeholder, t.trim());
+                    const url = searchUrl + encodeURIComponent(query) + (type === 'github' ? '&type=code' : '');
                     csv += `"${t.trim()}","${d}","${url}"\n`;
                 }
             }
             const blob = new Blob([csv], { type: 'text/csv' });
             const a = document.createElement('a');
+            let filename;
+            if (type === 'cred') filename = 'dorker_credentials.csv';
+            else if (type === 'github') filename = 'github_dorks.csv';
+            else filename = 'blind_xss_dorks.csv';
+            a.download = filename;
             a.href = URL.createObjectURL(blob);
-            a.download = type === 'cred' ? 'dorker_credentials.csv' : 'blind_xss_dorks.csv';
             a.click();
         }
 
